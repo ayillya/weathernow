@@ -39,48 +39,51 @@ function App() {
    * Includes robust error handling and user feedback.
    */
   const handleGetWeather = async () => {
-    if (!city.trim()) {
-      setError("Please enter a city name.");
-      return;
-    }
+  if (!city.trim()) {
+    setError("Please enter a city name.");
+    setWeather(null); // clear previous weather result if any
+    return;
+  }
 
-    setError("");
+  setError("");
+  setWeather(null); // clear previous data before new fetch
+  setLoading(true);
+
+  try {
+    // Step 1: Get coordinates
+    const { latitude, longitude, name, country } = await getCoordinates(city);
+
+    // Step 2: Get weather data
+    const current = await getWeatherData(latitude, longitude);
+
+    // Step 3: Map weather code to visuals
+    const details = getWeatherDetails(current.weathercode);
+
+    // Step 4: Update state
+    setWeather({
+      city: name,
+      country,
+      temperature: current.temperature,
+      windspeed: current.windspeed,
+      description: details.desc,
+      icon: details.icon,
+      bg: details.bg,
+    });
+  } catch (err) {
+    // Clear weather and background on error
     setWeather(null);
-    setLoading(true);
 
-    try {
-      // Step 1: Get coordinates
-      const { latitude, longitude, name, country } = await getCoordinates(city);
-
-      // Step 2: Get weather data
-      const current = await getWeatherData(latitude, longitude);
-
-      // Step 3: Map weather code to visuals
-      const details = getWeatherDetails(current.weathercode);
-
-      // Step 4: Update state
-      setWeather({
-        city: name,
-        country,
-        temperature: current.temperature,
-        windspeed: current.windspeed,
-        description: details.desc,
-        icon: details.icon,
-        bg: details.bg,
-      });
-    } catch (err) {
-      // Handle specific error messages from API
-      if (err.response) {
-        setError("Weather service temporarily unavailable.");
-      } else if (err.message.includes("City not found")) {
-        setError("City not found. Please try another name.");
-      } else {
-        setError("Network error. Please check your connection.");
-      }
-    } finally {
-      setLoading(false);
+    if (err.response) {
+      setError("Weather service temporarily unavailable.");
+    } else if (err.message.includes("City not found")) {
+      setError("City not found. Please try another name.");
+    } else {
+      setError("Network error. Please check your connection.");
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className={`container ${weather ? weather.bg : "default"}`}>
